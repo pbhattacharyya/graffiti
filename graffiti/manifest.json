@@ -1,0 +1,27 @@
+{
+    "manifest_version": 2,
+  
+    "name": "Graffiti",
+    "description": "This extension covers up hate speech with beautiful art.",
+    "version": "1.0",
+  
+    "browser_action": {
+      // "default_icon": "popup/icon.png",
+      // "default_popup": "popup/index.html",
+      "default_title": "Graffiti"
+    },
+  
+    "permissions": [],
+  
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": [
+          "scripts/libs/jquery-3.2.1.min.js",
+          "scripts/graffiti.js"
+        ],
+        "run_at": "document_end"
+      }
+    ]
+  }
+  
