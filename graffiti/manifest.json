@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
   
-    "name": "Graffiti",
+    "name": "Qraffiti",
     "description": "This extension covers up hate speech with beautiful art.",
     "version": "1.0",
     
@@ -12,11 +12,17 @@
     },
     
     "browser_action": {
-      "default_popup": "popup/index.html",
-      "default_title": "Graffiti"
+      "default_title": "Qraffiti"
     },
   
     "permissions": [],
+
+    "background": {
+      "scripts": [
+        "background/background.js"
+      ],
+      "persistent": false
+    },
   
     "content_scripts": [
       {

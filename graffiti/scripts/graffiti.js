@@ -11,7 +11,7 @@ var GraffitiExtension;
 (function (GraffitiExtension) {
     class ImageRetreiver {
         constructor() {
-            this.unsplashSearchQuery = "queer+or+lgbt";
+            this.unsplashSearchQuery = "lgbt";
         }
         getRandomImage(containerHeight = 100, containerWidth = 300) {
             return this.getUnsplashHotlinkDetails(containerHeight, containerWidth);
@@ -1102,16 +1102,48 @@ font-weight: normal;
 var GraffitiExtension;
 (function (GraffitiExtension) {
     class TextReplacer {
-        ReplaceInNode(node) {
-            const tagsToMatch = "p,h1,h2,h3,h4,h5,h6";
-            jQuery(node)
-                .find(`${tagsToMatch}:not(${tagsToMatch} ${tagsToMatch})`)
-                .each((idx, child) => this.handleText(jQuery(child)));
+        constructor(rootNode) {
+            this.rootNode = rootNode;
+            this.isActive = true;
+        }
+        startReplacement() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const tagsToMatch = "p,h1,h2,h3,h4,h5,h6";
+                var promises = [];
+                jQuery(this.rootNode)
+                    .find(`${tagsToMatch}:not(${tagsToMatch} ${tagsToMatch})`)
+                    .each((idx, child) => {
+                    var $child = jQuery(child);
+                    promises.push(this.handleText($child).then($new => {
+                        return { old: $child, new: $new };
+                    }));
+                });
+                var nodeMap = yield Promise.all(promises);
+                // remove items that did not get replaced
+                this.nodeMap = nodeMap.filter(pair => pair.new);
+            });
+        }
+        toggleActiveStatus() {
+            if (!this.nodeMap) {
+                return; // nodes are not loaded yet, abort
+            }
+            this.isActive = !this.isActive;
+            this.nodeMap.forEach(nodePair => {
+                if (this.isActive) {
+                    nodePair.old.replaceWith(nodePair.new);
+                }
+                else {
+                    nodePair.new.replaceWith(nodePair.old);
+                }
+            });
         }
         handleText($node) {
-            if (this.isMatch($node.text())) {
-                this.performReplace($node);
-            }
+            return __awaiter(this, void 0, void 0, function* () {
+                if (this.isMatch($node.text())) {
+                    return yield this.performReplacement($node);
+                }
+                return null;
+            });
         }
         isMatch(text) {
             if (text.split(" ").length < 5) {
@@ -1136,7 +1168,7 @@ var GraffitiExtension;
             }
             return false;
         }
-        performReplace($node) {
+        performReplacement($node) {
             return __awaiter(this, void 0, void 0, function* () {
                 var origHeight = $node.height();
                 var origWidth = $node.width();
@@ -1156,6 +1188,7 @@ var GraffitiExtension;
                     minHeight: origWidth / imageDetails.aspectRatio
                 });
                 $newNode.append(this.getOverlayContent);
+                return $newNode;
             });
         }
         getOverlayContent() {
@@ -1165,14 +1198,22 @@ var GraffitiExtension;
     GraffitiExtension.TextReplacer = TextReplacer;
 })(GraffitiExtension || (GraffitiExtension = {}));
 /// <reference types="jquery" />
+/// <reference types="chrome" />
 /// <reference path="textReplacer.ts" />
 var GraffitiExtension;
 (function (GraffitiExtension) {
-    class Loader {
+    class Bootstrapper {
         start() {
             return __awaiter(this, void 0, void 0, function* () {
                 yield this.waitForDocumentReady();
-                new GraffitiExtension.TextReplacer().ReplaceInNode(document.body);
+                var replacer = new GraffitiExtension.TextReplacer(document.body);
+                replacer.startReplacement();
+                chrome.runtime.onMessage.addListener(msg => {
+                    switch (msg.type) {
+                        case "BROWSER_ACTION_ONCLICKED":
+                            replacer.toggleActiveStatus();
+                    }
+                });
             });
         }
         waitForDocumentReady() {
@@ -1188,5 +1229,5 @@ var GraffitiExtension;
             });
         }
     }
-    new Loader().start();
+    new Bootstrapper().start();
 })(GraffitiExtension || (GraffitiExtension = {}));

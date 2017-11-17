@@ -6,20 +6,54 @@
 
 module GraffitiExtension {
 
-    export class TextReplacer{
+    export class TextReplacer {
+
+        constructor(private rootNode: Node) { }
+
+        private isActive = true;
+        private nodeMap : Array<{old: JQuery, new: JQuery}>;
     
-        public ReplaceInNode (node: Node) {
+        public async startReplacement() {
             const tagsToMatch = "p,h1,h2,h3,h4,h5,h6";
 
-            jQuery(node)
+            var promises : Array<Promise<{old: JQuery, new: JQuery}>> = [];
+
+            jQuery(this.rootNode)
                 .find(`${tagsToMatch}:not(${tagsToMatch} ${tagsToMatch})`)
-                .each((idx, child) => this.handleText(jQuery(child)));
+                .each((idx, child) => {
+                    var $child = jQuery(child);
+                    promises.push(this.handleText($child).then($new => {
+                        return {old: $child, new: $new}
+                    }));
+                });
+
+            var nodeMap = await Promise.all(promises);
+
+            // remove items that did not get replaced
+            this.nodeMap = nodeMap.filter(pair => pair.new);
+        }
+
+        public toggleActiveStatus() {
+            if(!this.nodeMap) {
+                return; // nodes are not loaded yet, abort
+            }
+
+            this.isActive = !this.isActive;
+
+            this.nodeMap.forEach(nodePair => {
+                if(this.isActive) {
+                    nodePair.old.replaceWith(nodePair.new);
+                } else {
+                    nodePair.new.replaceWith(nodePair.old);
+                }
+            });
         }
         
-        private handleText ($node: JQuery) {
+        private async handleText ($node: JQuery) : Promise<JQuery> {
             if(this.isMatch($node.text())) {
-                this.performReplace($node);
+                return await this.performReplacement($node)
             }
+            return null;
         }
         
         private isMatch (text: string) {
@@ -51,7 +85,7 @@ module GraffitiExtension {
             return false;
         }
 
-        private async performReplace($node: JQuery) {
+        private async performReplacement($node: JQuery): Promise<JQuery> {
             var origHeight = $node.height();
             var origWidth = $node.width();
 
@@ -75,6 +109,8 @@ module GraffitiExtension {
             });
 
             $newNode.append(this.getOverlayContent);
+
+            return $newNode;
         }
 
         private getOverlayContent() : JQuery {

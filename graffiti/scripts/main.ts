@@ -1,28 +1,38 @@
 /// <reference types="jquery" />
+/// <reference types="chrome" />
 /// <reference path="textReplacer.ts" />
 
 module GraffitiExtension {
 
-  class Loader {
-    private readyDeferred: JQueryDeferred<any>;
+    class Bootstrapper {
+        private readyDeferred: JQueryDeferred<any>;
 
-    public async start() {
-      await this.waitForDocumentReady();
-      new TextReplacer().ReplaceInNode(document.body);
-    }
+        public async start() {
+            await this.waitForDocumentReady();
 
-    private async waitForDocumentReady() : Promise<any> {
-      var deferred = jQuery.Deferred();
-      var loadingInterval = setInterval(() => {
-        if (/loaded|complete/.test(document.readyState)) {
-          clearInterval(loadingInterval);
-          deferred.resolve();
+            var replacer = new TextReplacer(document.body);
+            replacer.startReplacement();
+
+            chrome.runtime.onMessage.addListener(msg => {
+                switch (msg.type) {
+                    case "BROWSER_ACTION_ONCLICKED":
+                        replacer.toggleActiveStatus();
+                }
+            })
         }
-        }, 10);
-      return deferred.promise;
-    }
-  }
 
-  new Loader().start();
+        private async waitForDocumentReady() : Promise<any> {
+            var deferred = jQuery.Deferred();
+            var loadingInterval = setInterval(() => {
+                if (/loaded|complete/.test(document.readyState)) {
+                    clearInterval(loadingInterval);
+                    deferred.resolve();
+                }
+                }, 10);
+            return deferred.promise;
+        }
+    }
+
+    new Bootstrapper().start();
 
 }

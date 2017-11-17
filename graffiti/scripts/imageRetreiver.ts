@@ -6,7 +6,7 @@ module GraffitiExtension {
 
     export class ImageRetreiver {
 
-        private unsplashSearchQuery = "queer+or+lgbt";
+        private unsplashSearchQuery = "lgbt";
 
         public getRandomImage(containerHeight = 100, containerWidth = 300) : Promise<ImageDetails> {
             return this.getUnsplashHotlinkDetails(containerHeight, containerWidth);
