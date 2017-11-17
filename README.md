@@ -19,3 +19,8 @@ tsc -p graffiti/.vscode
 ```
 
 After that you can upload the extension by opening Chrome, going to chrome://extensions/, clicking on "Load unpacked extension...", and selecting the graffiti folder.
+
+### Thanks
+
+- Hate Speech Lexicon from [t-davidson/hate-speech-and-offensive-language](https://github.com/t-davidson/hate-speech-and-offensive-language/blob/master/lexicons/hatebase_dict.csv)
+- [Unsplash API](https://unsplash.com/developers)
