@@ -1,8 +1,6 @@
 module GraffitiExtension {
 
 export var matchPhrases = [
-"good friends",
-"uncivilised",
 "gypo",
 "gypos",
 "cunt",

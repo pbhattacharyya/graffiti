@@ -9,16 +9,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var GraffitiExtension;
 (function (GraffitiExtension) {
-    class ImageRetreiver {
+    class UnsplashImageRetreiver {
         constructor() {
             this.unsplashSearchQuery = "lgbt";
         }
         getRandomImage(containerHeight = 100, containerWidth = 300) {
-            return this.getUnsplashHotlinkDetails(containerHeight, containerWidth);
-        }
-        getUnsplashHotlinkDetails(height, width) {
             return __awaiter(this, void 0, void 0, function* () {
-                var orientation = width > height ? "landscape" : "portrait";
+                var orientation = containerHeight > containerWidth ? "landscape" : "portrait";
                 var response = yield jQuery.get({
                     url: `https://api.unsplash.com/photos/random?query=${this.unsplashSearchQuery}&orientation=${orientation}`,
                     headers: {
@@ -34,13 +31,35 @@ var GraffitiExtension;
             });
         }
     }
-    GraffitiExtension.ImageRetreiver = ImageRetreiver;
+    GraffitiExtension.UnsplashImageRetreiver = UnsplashImageRetreiver;
+    class FlickrImageRetreiver {
+        constructor() {
+            this.flickrSearchQuery = "lgbt";
+        }
+        getRandomImage(containerHeight = 100, containerWidth = 300) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var page = Math.ceil(Math.random() * 2000);
+                var response = yield jQuery.get({
+                    url: `https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=${FLICKR_API_KEY}&license=7%2C8%2C9%2C10&privacy_filter=1&safe_search=1&per_page=1&page=${page}&format=json&nojsoncallback=1&text=${this.flickrSearchQuery}`,
+                });
+                var photo = response.photos.photo[0];
+                var sizeResponse = yield jQuery.get({
+                    url: `https://api.flickr.com/services/rest/?method=flickr.photos.getSizes&api_key=${FLICKR_API_KEY}&photo_id=${photo.id}&format=json&nojsoncallback=1`
+                });
+                var sizeIdx = sizeResponse.sizes.size.findIndex(s => s.width > containerWidth && s.height > containerHeight);
+                var size = sizeResponse.sizes.size[sizeIdx];
+                return {
+                    url: size.source,
+                    aspectRatio: size.width / size.height
+                };
+            });
+        }
+    }
+    GraffitiExtension.FlickrImageRetreiver = FlickrImageRetreiver;
 })(GraffitiExtension || (GraffitiExtension = {}));
 var GraffitiExtension;
 (function (GraffitiExtension) {
     GraffitiExtension.matchPhrases = [
-        "good friends",
-        "uncivilised",
         "gypo",
         "gypos",
         "cunt",
@@ -1076,6 +1095,55 @@ var GraffitiExtension;
         "Rhine monkies"
     ];
 })(GraffitiExtension || (GraffitiExtension = {}));
+/// <reference types="jquery" />
+/// <reference path="matchList.ts" />
+var GraffitiExtension;
+(function (GraffitiExtension) {
+    // export class ParallelDotsTextChecker implements ITextChecker {
+    //     public async isAbusivePassage(textPassage: string) : Promise<boolean> {
+    //         var response : ParallelDots.AbuseQueryResponse = await jQuery.post({
+    //             url: "https://apis.paralleldots.com/v2/abuse",
+    //             data: {
+    //                 "api_key": PARALLELDOTS_API_KEY,
+    //                 "text": textPassage
+    //             }
+    //         });
+    //         return response.sentence_type == "Abusive";
+    //     }
+    // }
+    class MatchListTextChecker {
+        isAbusivePassage(textPassage) {
+            return __awaiter(this, void 0, void 0, function* () {
+                yield Promise.resolve;
+                if (textPassage.split(" ").length < 5) {
+                    // Only attempt match when at leat 5 words
+                    return false;
+                }
+                // get all lower case words without symbols and remove empty items
+                textPassage = textPassage.toLowerCase().replace(/[^\w\s]/g, " ");
+                var words = textPassage.split(" ").filter(w => w);
+                for (var i = 0; i < words.length; i++) {
+                    if (GraffitiExtension.matchPhrases.some(phrase => {
+                        var phraseWords = phrase.split(" ");
+                        if (phraseWords.length + i > words.length) {
+                            // phrase is longer than remaining words in original text
+                            return false;
+                        }
+                        // do all phrase words match this text word (+ peek next words)
+                        if (phraseWords.every((pWord, pidx) => words[i + pidx] == pWord)) {
+                            console.log(`matched: ${phrase} ${textPassage} `);
+                            return true;
+                        }
+                    })) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+    }
+    GraffitiExtension.MatchListTextChecker = MatchListTextChecker;
+})(GraffitiExtension || (GraffitiExtension = {}));
 var GraffitiExtension;
 (function (GraffitiExtension) {
     GraffitiExtension.overlayContent = `
@@ -1096,8 +1164,8 @@ font-weight: normal;
 })(GraffitiExtension || (GraffitiExtension = {}));
 /// <reference types="jquery" />
 /// <reference types="chrome" />
-/// <reference path="matchList.ts" />
 /// <reference path="imageRetreiver.ts" />
+/// <reference path="textChecker.ts" />
 /// <reference path="overlayContent.ts" />
 var GraffitiExtension;
 (function (GraffitiExtension) {
@@ -1105,6 +1173,10 @@ var GraffitiExtension;
         constructor(rootNode) {
             this.rootNode = rootNode;
             this.isActive = true;
+            // private textChecker: ITextChecker = new ParallelDotsTextChecker();
+            this.textChecker = new GraffitiExtension.MatchListTextChecker();
+            // private imageRetreiver: IImageRetreiver = new UnsplashImageRetreiver();
+            this.imageRetreiver = new GraffitiExtension.FlickrImageRetreiver();
         }
         startReplacement() {
             return __awaiter(this, void 0, void 0, function* () {
@@ -1140,34 +1212,20 @@ var GraffitiExtension;
         }
         handleText($node) {
             return __awaiter(this, void 0, void 0, function* () {
-                if (this.isMatch($node.text())) {
+                if (yield this.isMatch($node.text())) {
                     return yield this.performReplacement($node);
                 }
                 return null;
             });
         }
         isMatch(text) {
-            if (text.split(" ").length < 5) {
-                // Only attempt match when at leat 5 words
-                return false;
-            }
-            // get all lower case words without symbols and remove empty items
-            text = text.toLowerCase().replace(/[^\w\s]/g, " ");
-            var words = text.split(" ").filter(w => w);
-            for (var i = 0; i < words.length; i++) {
-                if (GraffitiExtension.matchPhrases.some(phrase => {
-                    var phraseWords = phrase.split(" ");
-                    if (phraseWords.length + i > words.length) {
-                        // phrase is longer than remaining words in original text
-                        return false;
-                    }
-                    // do all phrase words match this text word (+ peek next words)
-                    return phraseWords.every((pWord, pidx) => words[i + pidx] == pWord);
-                })) {
-                    return true;
+            return __awaiter(this, void 0, void 0, function* () {
+                if (text.split(" ").length < 5) {
+                    // Only attempt match when at leat 5 words
+                    return false;
                 }
-            }
-            return false;
+                return yield this.textChecker.isAbusivePassage(text);
+            });
         }
         performReplacement($node) {
             return __awaiter(this, void 0, void 0, function* () {
@@ -1177,14 +1235,17 @@ var GraffitiExtension;
                     .css({
                     minHeight: origHeight,
                     width: origWidth,
+                    padding: 0,
+                    margin: 0,
+                    border: 0,
                     backgroundColor: "transparent",
                     display: $node.css("display"),
                     borderRadius: "8px"
                 });
                 $node.replaceWith($newNode);
-                var imageDetails = yield new GraffitiExtension.ImageRetreiver().getRandomImage();
+                var imageDetails = yield this.imageRetreiver.getRandomImage();
                 $newNode.css({
-                    background: `${imageDetails.primaryColor} url("${imageDetails.url}")`,
+                    background: `url("${imageDetails.url}")`,
                     backgroundSize: "cover",
                     minHeight: origWidth / imageDetails.aspectRatio
                 });

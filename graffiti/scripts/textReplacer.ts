@@ -1,7 +1,7 @@
 /// <reference types="jquery" />
 /// <reference types="chrome" />
-/// <reference path="matchList.ts" />
 /// <reference path="imageRetreiver.ts" />
+/// <reference path="textChecker.ts" />
 /// <reference path="overlayContent.ts" />
 
 module GraffitiExtension {
@@ -12,7 +12,13 @@ module GraffitiExtension {
 
         private isActive = true;
         private nodeMap : Array<{old: JQuery, new: JQuery}>;
-    
+
+        // private textChecker: ITextChecker = new ParallelDotsTextChecker();
+        private textChecker: ITextChecker = new MatchListTextChecker();
+
+        // private imageRetreiver: IImageRetreiver = new UnsplashImageRetreiver();
+        private imageRetreiver: IImageRetreiver = new FlickrImageRetreiver();
+        
         public async startReplacement() {
             const tagsToMatch = "p,h1,h2,h3,h4,h5,h6";
 
@@ -49,39 +55,19 @@ module GraffitiExtension {
         }
         
         private async handleText ($node: JQuery) : Promise<JQuery> {
-            if(this.isMatch($node.text())) {
+            if(await this.isMatch($node.text())) {
                 return await this.performReplacement($node)
             }
             return null;
         }
         
-        private isMatch (text: string) {
+        private async isMatch (text: string) : Promise<boolean> {
             if(text.split(" ").length < 5) {
                 // Only attempt match when at leat 5 words
                 return false;
             }
-            
-            // get all lower case words without symbols and remove empty items
-            text = text.toLowerCase().replace(/[^\w\s]/g, " ");
-            var words = text.split(" ").filter(w => w);
 
-            for(var i = 0; i < words.length; i++) {
-
-                if(matchPhrases.some(phrase => {
-                    var phraseWords = phrase.split(" ");
-                    if(phraseWords.length + i > words.length) {
-                        // phrase is longer than remaining words in original text
-                        return false;
-                    }
-
-                    // do all phrase words match this text word (+ peek next words)
-                    return phraseWords.every((pWord, pidx) => words[i + pidx] == pWord);
-                })) {
-                    return true;
-                }
-            }
-
-            return false;
+            return await this.textChecker.isAbusivePassage(text);
         }
 
         private async performReplacement($node: JQuery): Promise<JQuery> {
@@ -92,6 +78,9 @@ module GraffitiExtension {
                 .css({
                     minHeight: origHeight,
                     width: origWidth,
+                    padding: 0,
+                    margin: 0,
+                    border: 0,
                     backgroundColor: "transparent",
                     display: $node.css("display"),
                     borderRadius: "8px"
@@ -99,10 +88,10 @@ module GraffitiExtension {
             
             $node.replaceWith($newNode);
 
-            var imageDetails = await new ImageRetreiver().getRandomImage();
+            var imageDetails = await this.imageRetreiver.getRandomImage();
             
             $newNode.css({
-                background: `${imageDetails.primaryColor} url("${imageDetails.url}")`,
+                background: `url("${imageDetails.url}")`,
                 backgroundSize: "cover",
                 minHeight: origWidth / imageDetails.aspectRatio
             });
