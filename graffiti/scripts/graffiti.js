@@ -1124,18 +1124,19 @@ var GraffitiExtension;
             });
         }
         toggleActiveStatus() {
-            if (!this.nodeMap) {
-                return; // nodes are not loaded yet, abort
+            // only continue if nodes are loaded
+            if (this.nodeMap) {
+                this.isActive = !this.isActive;
+                this.nodeMap.forEach(nodePair => {
+                    if (this.isActive) {
+                        nodePair.old.replaceWith(nodePair.new);
+                    }
+                    else {
+                        nodePair.new.replaceWith(nodePair.old);
+                    }
+                });
             }
-            this.isActive = !this.isActive;
-            this.nodeMap.forEach(nodePair => {
-                if (this.isActive) {
-                    nodePair.old.replaceWith(nodePair.new);
-                }
-                else {
-                    nodePair.new.replaceWith(nodePair.old);
-                }
-            });
+            return this.isActive;
         }
         handleText($node) {
             return __awaiter(this, void 0, void 0, function* () {
@@ -1208,10 +1209,11 @@ var GraffitiExtension;
                 yield this.waitForDocumentReady();
                 var replacer = new GraffitiExtension.TextReplacer(document.body);
                 replacer.startReplacement();
-                chrome.runtime.onMessage.addListener(msg => {
+                chrome.runtime.onMessage.addListener((msg, sender, respond) => {
                     switch (msg.type) {
                         case "BROWSER_ACTION_ONCLICKED":
-                            replacer.toggleActiveStatus();
+                            var active = replacer.toggleActiveStatus();
+                            respond({ "isActive": active });
                     }
                 });
             });

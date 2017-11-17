@@ -13,10 +13,11 @@ module GraffitiExtension {
             var replacer = new TextReplacer(document.body);
             replacer.startReplacement();
 
-            chrome.runtime.onMessage.addListener(msg => {
+            chrome.runtime.onMessage.addListener((msg, sender, respond) => {
                 switch (msg.type) {
                     case "BROWSER_ACTION_ONCLICKED":
-                        replacer.toggleActiveStatus();
+                        var active = replacer.toggleActiveStatus();
+                        respond({"isActive": active});
                 }
             })
         }

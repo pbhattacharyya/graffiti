@@ -33,20 +33,19 @@ module GraffitiExtension {
             this.nodeMap = nodeMap.filter(pair => pair.new);
         }
 
-        public toggleActiveStatus() {
-            if(!this.nodeMap) {
-                return; // nodes are not loaded yet, abort
+        public toggleActiveStatus() : boolean {
+            // only continue if nodes are loaded
+            if(this.nodeMap) {
+                this.isActive = !this.isActive;
+                this.nodeMap.forEach(nodePair => {
+                    if(this.isActive) {
+                        nodePair.old.replaceWith(nodePair.new);
+                    } else {
+                        nodePair.new.replaceWith(nodePair.old);
+                    }
+                });
             }
-
-            this.isActive = !this.isActive;
-
-            this.nodeMap.forEach(nodePair => {
-                if(this.isActive) {
-                    nodePair.old.replaceWith(nodePair.new);
-                } else {
-                    nodePair.new.replaceWith(nodePair.old);
-                }
-            });
+            return this.isActive;
         }
         
         private async handleText ($node: JQuery) : Promise<JQuery> {
