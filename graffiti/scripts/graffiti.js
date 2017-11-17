@@ -35,10 +35,11 @@ var GraffitiExtension;
     class FlickrImageRetreiver {
         constructor() {
             this.flickrSearchQuery = "lgbt";
+            this.searchSetSize = 2000; // TODO: This is brittle
         }
         getRandomImage(containerHeight = 100, containerWidth = 300) {
             return __awaiter(this, void 0, void 0, function* () {
-                var page = Math.ceil(Math.random() * 2000);
+                var page = Math.ceil(Math.random() * this.searchSetSize);
                 var response = yield jQuery.get({
                     url: `https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=${FLICKR_API_KEY}&license=7%2C8%2C9%2C10&privacy_filter=1&safe_search=1&per_page=1&page=${page}&format=json&nojsoncallback=1&text=${this.flickrSearchQuery}`,
                 });
@@ -1099,18 +1100,21 @@ var GraffitiExtension;
 /// <reference path="matchList.ts" />
 var GraffitiExtension;
 (function (GraffitiExtension) {
-    // export class ParallelDotsTextChecker implements ITextChecker {
-    //     public async isAbusivePassage(textPassage: string) : Promise<boolean> {
-    //         var response : ParallelDots.AbuseQueryResponse = await jQuery.post({
-    //             url: "https://apis.paralleldots.com/v2/abuse",
-    //             data: {
-    //                 "api_key": PARALLELDOTS_API_KEY,
-    //                 "text": textPassage
-    //             }
-    //         });
-    //         return response.sentence_type == "Abusive";
-    //     }
-    // }
+    class ParallelDotsTextChecker {
+        isAbusivePassage(textPassage) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var response = yield jQuery.post({
+                    url: "https://apis.paralleldots.com/v2/abuse",
+                    data: {
+                        "api_key": PARALLELDOTS_API_KEY,
+                        "text": textPassage
+                    }
+                });
+                return response.sentence_type == "Abusive";
+            });
+        }
+    }
+    GraffitiExtension.ParallelDotsTextChecker = ParallelDotsTextChecker;
     class MatchListTextChecker {
         isAbusivePassage(textPassage) {
             return __awaiter(this, void 0, void 0, function* () {

@@ -41,9 +41,10 @@ module GraffitiExtension {
     export class FlickrImageRetreiver {
 
         private flickrSearchQuery = "lgbt";
+        private searchSetSize = 2000; // TODO: This is brittle
 
         public async getRandomImage(containerHeight = 100, containerWidth = 300) : Promise<ImageDetails> {
-            var page = Math.ceil(Math.random() * 2000);
+            var page = Math.ceil(Math.random() * this.searchSetSize);
             var response : Flickr.PhotoSearchResponse = await
                 jQuery.get({
                     url: `https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=${FLICKR_API_KEY}&license=7%2C8%2C9%2C10&privacy_filter=1&safe_search=1&per_page=1&page=${page}&format=json&nojsoncallback=1&text=${this.flickrSearchQuery}`,

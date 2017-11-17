@@ -9,20 +9,20 @@ module GraffitiExtension {
         isAbusivePassage(textPassage: string) : Promise<boolean>;
     }
 
-    // export class ParallelDotsTextChecker implements ITextChecker {
+    export class ParallelDotsTextChecker implements ITextChecker {
 
-    //     public async isAbusivePassage(textPassage: string) : Promise<boolean> {
-    //         var response : ParallelDots.AbuseQueryResponse = await jQuery.post({
-    //             url: "https://apis.paralleldots.com/v2/abuse",
-    //             data: {
-    //                 "api_key": PARALLELDOTS_API_KEY,
-    //                 "text": textPassage
-    //             }
-    //         });
+        public async isAbusivePassage(textPassage: string) : Promise<boolean> {
+            var response : ParallelDots.AbuseQueryResponse = await jQuery.post({
+                url: "https://apis.paralleldots.com/v2/abuse",
+                data: {
+                    "api_key": PARALLELDOTS_API_KEY,
+                    "text": textPassage
+                }
+            });
 
-    //         return response.sentence_type == "Abusive";
-    //     }
-    // }
+            return response.sentence_type == "Abusive";
+        }
+    }
 
     export class MatchListTextChecker implements ITextChecker {
         public async isAbusivePassage(textPassage: string) : Promise<boolean> {
