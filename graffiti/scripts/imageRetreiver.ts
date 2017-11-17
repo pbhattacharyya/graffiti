@@ -1,17 +1,57 @@
 /// <reference path="typings/jquery/jquery.d.ts" />
 
+declare var GRAFFITI_EXT_UNSPLASH_CLIENT_ID: string;
+
 module GraffitiExtension {
 
-    // export class ImageRetreiver {
+    export class ImageRetreiver {
 
-    //     public async RandomImageUrl(containerHeight: number, containerWidth: number) : Promise<string> {
-    //         // TODO
-    //     }
+        private unsplashSearchQuery = "queer+or+lgbt";
 
-    //     private async getUnsplashHotlinkUrl : Promise<string> {
-    //         var response = await jQuery.get({
-    //             url: "https://api.unsplash.com/photos/random?client_id=6784fd834beccb08d467379cf5c4bfb5414831102f89c9bfdda79aea9d38185f&query=queer+or+lgbt"
-    //         });
-    //     }
-    // }
+        public getRandomImage(containerHeight = 100, containerWidth = 300) : Promise<ImageDetails> {
+            return this.getUnsplashHotlinkDetails(containerHeight, containerWidth);
+        }
+
+        private async getUnsplashHotlinkDetails(height: number, width: number) : Promise<ImageDetails> {
+            var orientation = width > height ? "landscape" : "portrait";
+            var response : Unsplash.RandomPhotoResponse = await
+                jQuery.get({
+                    url: `https://api.unsplash.com/photos/random?query=${this.unsplashSearchQuery}&orientation=${orientation}`,
+                    headers: {
+                        "Authorization": `Client-ID ${GRAFFITI_EXT_UNSPLASH_CLIENT_ID}`
+                    }
+                });
+            return {
+                url: response.urls.custom || response.urls.regular,
+                aspectRatio: response.width / response.height,
+                description: response.description,
+                primaryColor: response.color
+            };
+        }
+    }
+
+    export interface ImageDetails {
+        url: string;
+        aspectRatio: number;
+        description?: string;
+        primaryColor?: string;
+    }
+}
+
+module Unsplash {
+
+    export interface RandomPhotoResponse {
+        width: number;
+        height: number;
+        description: string;
+        color: string;
+        urls: {
+            raw: string,
+            full: string,
+            regular: string,
+            small: string,
+            thumb: string
+            custom?: string;
+        }
+    }
 }

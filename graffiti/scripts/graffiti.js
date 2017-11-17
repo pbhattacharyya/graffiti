@@ -1,4 +1,41 @@
 /// <reference path="typings/jquery/jquery.d.ts" />
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var GraffitiExtension;
+(function (GraffitiExtension) {
+    class ImageRetreiver {
+        constructor() {
+            this.unsplashSearchQuery = "queer+or+lgbt";
+        }
+        getRandomImage(containerHeight = 100, containerWidth = 300) {
+            return this.getUnsplashHotlinkDetails(containerHeight, containerWidth);
+        }
+        getUnsplashHotlinkDetails(height, width) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var orientation = width > height ? "landscape" : "portrait";
+                var response = yield jQuery.get({
+                    url: `https://api.unsplash.com/photos/random?query=${this.unsplashSearchQuery}&orientation=${orientation}`,
+                    headers: {
+                        "Authorization": `Client-ID ${GRAFFITI_EXT_UNSPLASH_CLIENT_ID}`
+                    }
+                });
+                return {
+                    url: response.urls.custom || response.urls.regular,
+                    aspectRatio: response.width / response.height,
+                    description: response.description,
+                    primaryColor: response.color
+                };
+            });
+        }
+    }
+    GraffitiExtension.ImageRetreiver = ImageRetreiver;
+})(GraffitiExtension || (GraffitiExtension = {}));
 var GraffitiExtension;
 (function (GraffitiExtension) {
     GraffitiExtension.matchPhrases = [
@@ -1041,41 +1078,39 @@ var GraffitiExtension;
 })(GraffitiExtension || (GraffitiExtension = {}));
 /// <reference path="typings/jquery/jquery.d.ts" />
 /// <reference path="matchList.ts" />
+/// <reference path="imageRetreiver.ts" />
 var GraffitiExtension;
 (function (GraffitiExtension) {
-    var TextReplacer = /** @class */ (function () {
-        function TextReplacer() {
-        }
-        TextReplacer.prototype.ReplaceInNode = function (node) {
-            var _this = this;
-            var tagsToMatch = "p,h1,h2,h3,h4,h5,h6";
+    class TextReplacer {
+        ReplaceInNode(node) {
+            const tagsToMatch = "p,h1,h2,h3,h4,h5,h6";
             jQuery(node)
-                .find(tagsToMatch + ":not(" + tagsToMatch + " " + tagsToMatch + ")")
-                .each(function (idx, child) { return _this.handleText(jQuery(child)); });
-        };
-        TextReplacer.prototype.handleText = function ($node) {
+                .find(`${tagsToMatch}:not(${tagsToMatch} ${tagsToMatch})`)
+                .each((idx, child) => this.handleText(jQuery(child)));
+        }
+        handleText($node) {
             if (this.isMatch($node.text())) {
                 this.performReplace($node);
             }
-        };
-        TextReplacer.prototype.isMatch = function (text) {
+        }
+        isMatch(text) {
             if (text.split(" ").length < 5) {
                 // Only attempt match when at leat 5 words
                 return false;
             }
             // get all lower case words without symbols and remove empty items
             text = text.toLowerCase().replace(/[^\w\s]/g, " ");
-            var words = text.split(" ").filter(function (w) { return w; });
+            var words = text.split(" ").filter(w => w);
             for (var i = 0; i < words.length; i++) {
-                if (GraffitiExtension.matchPhrases.some(function (phrase) {
+                if (GraffitiExtension.matchPhrases.some(phrase => {
                     var phraseWords = phrase.split(" ");
                     if (phraseWords.length + i > words.length) {
                         // phrase is longer than remaining words in original text
                         return false;
                     }
                     // do all phrase words match this text word (+ peek next words)
-                    if (phraseWords.every(function (pWord, pidx) { return words[i + pidx] == pWord; })) {
-                        console.log("matched : " + phrase);
+                    if (phraseWords.every((pWord, pidx) => words[i + pidx] == pWord)) {
+                        console.log(`matched : ${phrase}`);
                         return true;
                     }
                 })) {
@@ -1083,42 +1118,42 @@ var GraffitiExtension;
                 }
             }
             return false;
-        };
-        TextReplacer.prototype.performReplace = function ($node) {
+        }
+        performReplace($node) {
             var origHeight = $node.height();
             var origWidth = $node.width();
             var $newNode = jQuery("<div />")
                 .css({
                 height: origHeight,
                 width: origWidth,
-                backgroundColor: "red",
+                backgroundColor: "transparent",
                 display: $node.css("display"),
                 borderRadius: "8px"
             });
             $node.replaceWith($newNode);
-        };
-        return TextReplacer;
-    }());
+            new GraffitiExtension.ImageRetreiver().getRandomImage().then(imageDetails => $newNode.css({
+                background: `${imageDetails.primaryColor} url("${imageDetails.url}")`,
+                backgroundSize: "cover",
+                height: origWidth / imageDetails.aspectRatio
+            }));
+        }
+    }
     GraffitiExtension.TextReplacer = TextReplacer;
 })(GraffitiExtension || (GraffitiExtension = {}));
 /// <reference path="textReplacer.ts" />
 var GraffitiExtension;
 (function (GraffitiExtension) {
-    var Loader = /** @class */ (function () {
-        function Loader() {
+    class Loader {
+        start() {
+            this.loadingInterval = setInterval(() => this.checkIfLoaded(), 10);
         }
-        Loader.prototype.start = function () {
-            var _this = this;
-            this.loadingInterval = setInterval(function () { return _this.checkIfLoaded(); }, 10);
-        };
-        Loader.prototype.checkIfLoaded = function () {
+        checkIfLoaded() {
             if (/loaded|complete/.test(document.readyState)) {
                 clearInterval(this.loadingInterval);
                 new GraffitiExtension.TextReplacer().ReplaceInNode(document.body);
             }
-        };
-        return Loader;
-    }());
+        }
+    }
     new Loader().start();
 })(GraffitiExtension || (GraffitiExtension = {}));
 //# sourceMappingURL=graffiti.js.map

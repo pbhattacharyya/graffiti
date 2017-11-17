@@ -1,5 +1,6 @@
 /// <reference path="typings/jquery/jquery.d.ts" />
 /// <reference path="matchList.ts" />
+/// <reference path="imageRetreiver.ts" />
 
 module GraffitiExtension {
 
@@ -59,12 +60,18 @@ module GraffitiExtension {
                 .css({
                     height: origHeight,
                     width: origWidth,
-                    backgroundColor: "red",
+                    backgroundColor: "transparent",
                     display: $node.css("display"),
                     borderRadius: "8px"
                 });
             
             $node.replaceWith($newNode);
+
+            new ImageRetreiver().getRandomImage().then(imageDetails => $newNode.css({
+                background: `${imageDetails.primaryColor} url("${imageDetails.url}")`,
+                backgroundSize: "cover",
+                height: origWidth / imageDetails.aspectRatio
+            }));
         }
     }
 }
