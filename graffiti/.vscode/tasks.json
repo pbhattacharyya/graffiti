@@ -10,17 +10,6 @@
                 "kind": "build",
                 "isDefault": true
             }
-        },
-        {
-            "type": "typescript",
-            "tsconfig": ".vscode\\tsconfig.json",
-            "problemMatcher": [
-                "$tsc"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
         }
     ]
 }

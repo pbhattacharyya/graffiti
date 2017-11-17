@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "module": "none",
+        "typeRoots": [
+            "scripts/typings"
+        ],
+        "outFile": "scripts/graffiti.js"
+    },
+    "include": [
+        "scripts/**/*"
+    ]
+}

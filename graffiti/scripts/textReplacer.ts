@@ -1,6 +1,8 @@
-/// <reference path="typings/jquery/jquery.d.ts" />
+/// <reference types="jquery" />
+/// <reference types="chrome" />
 /// <reference path="matchList.ts" />
 /// <reference path="imageRetreiver.ts" />
+/// <reference path="overlayContent.ts" />
 
 module GraffitiExtension {
 
@@ -40,10 +42,7 @@ module GraffitiExtension {
                     }
 
                     // do all phrase words match this text word (+ peek next words)
-                    if(phraseWords.every((pWord, pidx) => words[i + pidx] == pWord)) {
-                        console.log(`matched : ${phrase}`);
-                        return true;
-                    }
+                    return phraseWords.every((pWord, pidx) => words[i + pidx] == pWord);
                 })) {
                     return true;
                 }
@@ -52,13 +51,13 @@ module GraffitiExtension {
             return false;
         }
 
-        private performReplace($node: JQuery) {
+        private async performReplace($node: JQuery) {
             var origHeight = $node.height();
             var origWidth = $node.width();
 
             var $newNode = jQuery("<div />")
                 .css({
-                    height: origHeight,
+                    minHeight: origHeight,
                     width: origWidth,
                     backgroundColor: "transparent",
                     display: $node.css("display"),
@@ -67,11 +66,19 @@ module GraffitiExtension {
             
             $node.replaceWith($newNode);
 
-            new ImageRetreiver().getRandomImage().then(imageDetails => $newNode.css({
+            var imageDetails = await new ImageRetreiver().getRandomImage();
+            
+            $newNode.css({
                 background: `${imageDetails.primaryColor} url("${imageDetails.url}")`,
                 backgroundSize: "cover",
-                height: origWidth / imageDetails.aspectRatio
-            }));
+                minHeight: origWidth / imageDetails.aspectRatio
+            });
+
+            $newNode.append(this.getOverlayContent);
+        }
+
+        private getOverlayContent() : JQuery {
+            return jQuery(overlayContent);
         }
     }
 }

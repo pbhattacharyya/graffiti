@@ -1,4 +1,4 @@
-/// <reference path="typings/jquery/jquery.d.ts" />
+/// <reference types="jquery" />
 
 declare var GRAFFITI_EXT_UNSPLASH_CLIENT_ID: string;
 

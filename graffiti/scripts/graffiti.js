@@ -1,4 +1,4 @@
-/// <reference path="typings/jquery/jquery.d.ts" />
+/// <reference types="jquery" />
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -1076,9 +1076,29 @@ var GraffitiExtension;
         "Rhine monkies"
     ];
 })(GraffitiExtension || (GraffitiExtension = {}));
-/// <reference path="typings/jquery/jquery.d.ts" />
+var GraffitiExtension;
+(function (GraffitiExtension) {
+    GraffitiExtension.overlayContent = `
+<div style="
+background: linear-gradient(rgba(0,0,0,1), rgba(0,0,0,0));
+border-radius: 8px;
+padding: 15px 15px 50px;
+text-align: center;
+color: white;
+font-size: 14px;
+font-weight: normal;
+">
+<div style="margin: 0; padding: 0; font-size: 17px; font-weight:bold">This picture is protecting you from sensitive content, such as hate speech. Disable Qraffiti to view this content.</div>
+<div style="margin: 5px 0 0 0; padding: 0">To learn more about cyberbullying, visit <a style="color: inherit; text-decoration: underline" href="http://www.endcyberbullying.org/">http://www.endcyberbullying.org/</a>.</div>
+<div style="margin: 5px 0 0 0; padding: 0">To get support, visit <a style="color: inherit; text-decoration: underline" href="http://www.thetrevorproject.org/">http://www.thetrevorproject.org/</a>.</div>
+</div>
+`;
+})(GraffitiExtension || (GraffitiExtension = {}));
+/// <reference types="jquery" />
+/// <reference types="chrome" />
 /// <reference path="matchList.ts" />
 /// <reference path="imageRetreiver.ts" />
+/// <reference path="overlayContent.ts" />
 var GraffitiExtension;
 (function (GraffitiExtension) {
     class TextReplacer {
@@ -1109,10 +1129,7 @@ var GraffitiExtension;
                         return false;
                     }
                     // do all phrase words match this text word (+ peek next words)
-                    if (phraseWords.every((pWord, pidx) => words[i + pidx] == pWord)) {
-                        console.log(`matched : ${phrase}`);
-                        return true;
-                    }
+                    return phraseWords.every((pWord, pidx) => words[i + pidx] == pWord);
                 })) {
                     return true;
                 }
@@ -1120,40 +1137,56 @@ var GraffitiExtension;
             return false;
         }
         performReplace($node) {
-            var origHeight = $node.height();
-            var origWidth = $node.width();
-            var $newNode = jQuery("<div />")
-                .css({
-                height: origHeight,
-                width: origWidth,
-                backgroundColor: "transparent",
-                display: $node.css("display"),
-                borderRadius: "8px"
+            return __awaiter(this, void 0, void 0, function* () {
+                var origHeight = $node.height();
+                var origWidth = $node.width();
+                var $newNode = jQuery("<div />")
+                    .css({
+                    minHeight: origHeight,
+                    width: origWidth,
+                    backgroundColor: "transparent",
+                    display: $node.css("display"),
+                    borderRadius: "8px"
+                });
+                $node.replaceWith($newNode);
+                var imageDetails = yield new GraffitiExtension.ImageRetreiver().getRandomImage();
+                $newNode.css({
+                    background: `${imageDetails.primaryColor} url("${imageDetails.url}")`,
+                    backgroundSize: "cover",
+                    minHeight: origWidth / imageDetails.aspectRatio
+                });
+                $newNode.append(this.getOverlayContent);
             });
-            $node.replaceWith($newNode);
-            new GraffitiExtension.ImageRetreiver().getRandomImage().then(imageDetails => $newNode.css({
-                background: `${imageDetails.primaryColor} url("${imageDetails.url}")`,
-                backgroundSize: "cover",
-                height: origWidth / imageDetails.aspectRatio
-            }));
+        }
+        getOverlayContent() {
+            return jQuery(GraffitiExtension.overlayContent);
         }
     }
     GraffitiExtension.TextReplacer = TextReplacer;
 })(GraffitiExtension || (GraffitiExtension = {}));
+/// <reference types="jquery" />
 /// <reference path="textReplacer.ts" />
 var GraffitiExtension;
 (function (GraffitiExtension) {
     class Loader {
         start() {
-            this.loadingInterval = setInterval(() => this.checkIfLoaded(), 10);
-        }
-        checkIfLoaded() {
-            if (/loaded|complete/.test(document.readyState)) {
-                clearInterval(this.loadingInterval);
+            return __awaiter(this, void 0, void 0, function* () {
+                yield this.waitForDocumentReady();
                 new GraffitiExtension.TextReplacer().ReplaceInNode(document.body);
-            }
+            });
+        }
+        waitForDocumentReady() {
+            return __awaiter(this, void 0, void 0, function* () {
+                var deferred = jQuery.Deferred();
+                var loadingInterval = setInterval(() => {
+                    if (/loaded|complete/.test(document.readyState)) {
+                        clearInterval(loadingInterval);
+                        deferred.resolve();
+                    }
+                }, 10);
+                return deferred.promise;
+            });
         }
     }
     new Loader().start();
 })(GraffitiExtension || (GraffitiExtension = {}));
-//# sourceMappingURL=graffiti.js.map
